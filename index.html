@@ -17,7 +17,15 @@
         color: #F92672;
         text-decoration: none;
       }
-      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      li {
+        padding: 2px;
+      }
+
+      .remark-code, .remark-inline-code {
+        font-family: 'Ubuntu Mono';
+        background: #e8e8e8;
+        padding: 2px 5px;
+      }
 
       .inverse {
         background: #272822;
@@ -29,6 +37,9 @@
         line-height: 0.8em;
       }
 
+      .column:first-of-type { float: left; }
+      .column { float: right; }
+      .split-50 .column { width: 48%; }
     </style>
   </head>
   <body>
@@ -59,10 +70,9 @@ Who am I?
 
 # Prerequisites
 
-- Basic familiarity with Unix shell scripting (bash)
+- Basic familiarity with Unix shell scripting (<code>bash</code>)
 
-- Some familiarity with Python3
-    - stuck on Python2? still useful, but YMMV
+- Some familiarity with <code>python3</code> (<code>python2</code> also works, but YMMV)
 
 ---
 
@@ -70,506 +80,412 @@ Who am I?
 
 - Motivation
     - What scripts are we talking about?
-    - When are shell scripts OK?
-    - When are they not?
-    - Why is python any better?
-- Shell &rarr; Python: Tips + Techniques
+    - Shell scripts! What are they good for?
+    - Why is Python better?
+- Shell &rarr; Python &mdash; Tips + Techniques
     - Organizing your scripts
-    - Command-line interfaces in python
-    - Running other programs from python
-    - Manipulating the filesystem from python
-    - Writing unit tests in python
-    - Other useful python modules for system utils?
+    - Command-line interfaces in Python
+    - Running other programs from Python
+    - Manipulating the filesystem from Python
+    - Writing unit tests in Python
+    - Other useful Python modules for system utils?
     - Other useful stuff?
-- Case study: binst
+- Case study &mdash; <code>binst</code>
 - Summary
 - Q &amp; A
 
 ---
 
-- Motivation
-    - What scripts are we talking about?
-        - (simple) build systems
-        - build system helpers
-        - developer tools
-        - code generators
-        - wrappers for more complex commands/workflows
-        - packaging/deployment/release scripts
-        - helper scripts on embedded targets
-
-    - When are shell scripts OK?
-        - Short!
-        - Simple!
-    - When are they not?
-        - Data structures!
-        - Complex logic
-        - Configurability
-        - Reusability
-        - Safety!
-    - Why is python any better?
-      (python vs. bash)
-        - Syntax:
-            - Shell:
-                - Reasonably easy to become productive
-                - Many pitfalls, hard to become **safe**
-                - Same as command-line. Skills are transferable.
-                - Reasonable amount of online resources. Lots of learning from others' examples. Harder to establish "best practice" vs. "common practice".
-            - Python:
-                - Reasonably easy syntax
-                - Slightly more cumbersome to integrate with other system binaries
-                - Lots of literature and resources. Most up-to-date. Harder to come across "dangerous" python examples.
-        - Data structures and types:
-            - Shell:
-                - Everything is a string
-                - <quote src="http://tldp.org/LDP/abs/html/untyped.html">Unlike many other programming languages, Bash does not segregate its variables by "type." Essentially, Bash variables are character strings, but, depending on context, Bash permits arithmetic operations and comparisons on variables. The determining factor is whether the value of a variable contains only digits.</quote>
-
-
-                - Whitespace in values often cause problems, and must be handled carefully
-                - Some support for integer arithmetic
-                - Some support for arrays
-            - Python:
-                - Dynamically (but strongly) typed
-                - Built-in types:
-                    - Numerics — int, float, complex
-                    - Sequences — list, tuple, range
-                        - Text — str
-                        - Binary data — bytes, bytearray, memoryview
-                        - Sets — set, frozenset
-                    - Mappings — dict
-                    - Others:
-                        - Modules
-                        - Classes and Class instances
-                        - Functions and Methods
-                        - Iterators and Generators
-                        - Exceptions
-                        - etc.
-        - Modularity:
-            - Shell: A file is **either** intended for immediate usage (maybe with purely-local function) **or** a bag of functions reusable by sourcing.
-            - Python: modules with "if __name__ == '__main__'" allows **both** for importability, and for immediate usage!
-        - Tools/library:
-            - Shell: Barebones/minimal language, use other system binaries to do heavy lifting
-            - Python:
-                - Very rich stdlib
-                - fairly simple to call out to other binaries, using subprocess
-        - MORE???
-
-- Shell &rarr; Python: Tips + Techniques
-    - Organizing your scripts
-        - Start by replicating your shell script in python
-            - one statement after another, no structure, everything is run from top to bottom
-        - Introduce functions
-            - Also common pattern in shell scripts
-        - Introduce the __main__ guard
-            - The fundamental trick that makes your script import-able from other python scripts
-        - Introduce main()
-            - Not a huge change, but:
-            - follows common conventions
-            - Makes it possible for another python script to import this module, and then run it as if it was the __main__ script.
-        - Split reusable functionality into separate/stand-alone modules
-        - Add unit tests to verify API + functionality of separate/stand-alone modules
-    - Command-line interfaces in python
-        - argparse
-    - Running other programs from python
-        - subprocess
-    - Manipulating the filesystem from python
-        - pathlib
-        - pathlib
-        - shutil? os?
-    - Writing unit tests in python
-    - Other useful python modules for system utils?
-    - Other useful stuff?
-- Case study: binst
-- Summary
-    - What have we learned?
-    - Reusable component **and** user-friendly command-line
-    - Reusable module that runs unit tests when invoked from command line.
-- Q &amp; A
-
----
-layout: false
 class: center, middle, inverse
 
-# What?
-
----
-template: default
-layout: true
-
-### What?
----
-
-- Pathnames in Python are traditionally *strings*
-- **pathlib** represents filesystem paths as proper objects
-    - Immutable/value objects
-    - Handle Unix/Windows differences transparently
-        - Write simple code that works everywhere!
-    - Rich API for querying and manipulating paths
-    - Replaces/supersedes:
-        - Most things from <code>os.path.*</code>
-        - Many things from <code>os.*</code>
-        - <code>fnmatch.fnmatch()</code>
-        - <code>glob.glob()</code>
-        - Maybe even <code>open()</code>?
+# Motivation
 
 ---
 
-- What is it **not**?
-    - Only handles *paths*, not file objects
-        - Don't care what you do to a file after you have opened it
-    - Does not handle URIs or other *path-like* things
+class: split-50
+
+## What scripts are we talking about?
+
+"The glue that holds your project together"
+
+.column[
+
+### Developer tools
+- Wrappers for more complex commands
+- Workflow helpers
+
+### Build-time
+
+- Small + simple build systems
+- Build system helpers, plug-ins
+- Code generators
+
+]
+.column[
+
+### Packaging, deployment, release, etc.
+
+- Signing images
+- Publishing assets
+
+### In production
+
+- Embedded targets
+- Inside deployed containers
+
+]
 
 ---
-layout: false
+
+class: split-50
+
+## Shell scripts! What are they good for?
+
+.column[
+
+### Pros
+
+- Short and simple stuff
+- Straightforward logic
+- No data structures
+
+]
+.column[
+
+### Cons
+
+- Scripts grow, in length and complexity
+- Complex logic
+- Data structures
+- Configurability
+- Reusability
+- Safety!
+
+]
+
+---
+
+## Why is Python better?
+
+### Showdown! Shell vs. Python
+
+---
+
+class: split-50
+
+## Why is Python better? &mdash; Syntax
+
+.column[
+
+### Shell
+
+- Reasonably easy to become productive
+- Similar to command-line; skills are transferable
+- Complexity &rarr; write-only
+- Trivial (and necessary) to run other programs
+- Many pitfalls, hard to become **safe**
+- Many online resources/examples
+- **Common practice** != **Best practice**!
+
+```bash
+filename="My favourite quotations.txt"
+touch $filename
+```
+
+]
+.column[
+
+### Python
+
+- Simple and beginner-friendly syntax
+- Considered one of the more readable languages
+- Not as trivial to run other programs
+- Fewer pitfalls than shell.
+- Lots of literature and resources.
+- Harder to come across "dangerous" examples
+
+]
+
+---
+
+class: split-50
+
+## Why is Python better? &mdash; Data structures and types
+
+.column[
+
+### Shell
+
+- Everything is a string
+- Whitespace in values often cause problems, and must be handled carefully
+- Some support for integer arithmetic
+- Some support for arrays
+
+<blockquote><small>
+<a href="http://tldp.org/LDP/abs/html/untyped.html">Advanced Bash-Scripting Guide</a> says:<br />
+&laquo;Unlike many other programming languages, Bash does not segregate its variables by "type." Essentially, Bash variables are character strings, but, depending on context, Bash permits arithmetic operations and comparisons on variables. The determining factor is whether the value of a variable contains only digits.&raquo;
+</small></blockquote>
+
+]
+.column[
+
+### Python
+
+- Dynamically (but strongly) typed
+- Built-in types:
+    - Numerics — <code>int</code>, <code>float</code>, <code>complex</code>
+    - Sequences — <code>list</code>, <code>tuple</code>, <code>range</code>
+        - Text and binary data — <code>str</code>, <code>bytes</code>, &hellip;
+        - Sets — <code>set</code>, &hellip;
+    - Mappings — <code>dict</code>
+    - Others:
+        - Modules
+        - Classes and Class instances
+        - Functions and Methods
+        - Iterators and Generators
+        - Exceptions
+        - etc.
+
+]
+
+---
+
+class: split-50
+
+## Why is Python better? &mdash; Modularity
+
+.column[
+
+### Shell
+
+A file is **either** intended for immediate usage (maybe with purely-local function) **or** a bag of functions reusable by sourcing.
+
+]
+.column[
+
+### Python
+
+Modules with <code>\_\_main\_\_</code> guards allows **both** for importability, and for immediate usage!
+
+]
+
+---
+
+class: split-50
+
+## Why is Python better? &mdash; Modularity, cont.
+
+.column[
+
+<code>foo.sh</code>:
+```bash
+#!/bin/sh
+
+echo "This is always run"
+
+foo() {
+    echo "This is foo"
+}
+```
+
+<code>bar.sh</code>:
+```bash
+#!/bin/sh
+
+source foo.sh
+
+foo()
+```
+
+]
+.column[
+
+<code>foo.py</code>:
+```python
+#!/usr/bin/env python3
+
+print("This is always run")
+
+def foo():
+    print('This is foo')
+
+if __name__ == '__main__':
+    print("Not run when this file is imported")
+```
+
+<code>bar.py</code>:
+```python
+#!/usr/bin/env python3
+
+import foo
+
+foo.foo()
+```
+
+]
+
+---
+
+class: split-50
+
+## Why is Python better? &mdash; Tools &amp; Libraries
+
+.column[
+
+### Shell
+
+- Language itself is fairly minimal
+- Use system binaries from Unix ecosystem to do heavy lifting
+
+]
+.column[
+
+### Python
+
+- Very rich stdlib &mdash; can do most things "within" the language
+- Use <code>subprocess</code> module to call out to other binaries
+
+]
+
+---
+
 class: center, middle, inverse
 
-# Why?
+# Shell &rarr; Python
 
----
-template: default
-layout: true
-
-### Why?
----
-
-- Easier and safer handling of pathnames
-- More readable code
-    - Less <code>os.path.*</code> noise in your code
-    - Moves your path names (variables or constants) towards the *left*
-      (i.e. into focus):
-
-```python
-# Before
-if os.path.isdir(path):
-    os.rmdir(path)
-
-# After:
-if path.is_dir():
-    path.rmdir()
-```
+## Tips + Techniques
 
 ---
 
-#### Typical scenario:
+## Organizing your scripts
 
-- Python often used in build/packaging system
-- "Glue" code
-
-
-- Lots of path manipulation:
-    - Creating/removing directories
-    - Moving files around
-    - Looking for specific (types of) files
-    - Constructing/manipulating *relative* and *absolute* paths
+- Start by replicating your shell script in Python
+    - one statement after another, no structure, everything is run from top to bottom
+- Introduce functions
+    - Also common pattern in shell scripts
+- Introduce the __main__ guard
+    - The fundamental trick that makes your script import-able from other Python scripts
+- Introduce main()
+    - Not a huge change, but:
+    - follows common conventions
+    - Makes it possible for another Python script to import this module, and then run it as if it was the __main__ script.
+- Split reusable functionality into separate/stand-alone modules
+- Add unit tests to verify API + functionality of separate/stand-alone modules
 
 ---
-layout: false
+
+## Command-line interfaces in Python
+
+- argparse
+- Unix conventions:
+    - non-zero exit code on failure, otherwise exit 0
+    - use stdin/stdout for default input/output
+    - log errors to stderr (talk about <code>logging</code>?)
+
+---
+
+## Running other programs from Python
+
+- <code>subprocess</code>
+
+---
+
+## Manipulating the filesystem from Python
+
+- <code>pathlib</code>
+- <code>shutil</code>?
+- <code>os</code>?
+
+---
+
+## Writing unit tests in Python
+
+- <code>doctest</code>
+- <code>unittest</code>
+- <code>py.test</code> (not in stdlib)
+
+---
+
+## Other useful Python modules for system utils?
+
+---
+
+## Other useful stuff?
+
+- Simplify error handling:
+    - Allowing exceptions to terminate program
+    - Usefulness of tracebacks
+
+---
+
 class: center, middle, inverse
 
-# Example
+# Case study
 
----
-template: default
-layout: true
+## <tt>binst</tt>
 
-### Example
----
+- build/test cycle:
+    - Run build to produce .pkg
+    - Run binst to install .pkg onto device
+        - Pushes .pkg onto device and triggers install + reboot
+        - Useful workflow for developers
 
-```python
-import os
+- Show overview of binst
+    - identify larger sections
+        - command-line handling
+        - data structures
+        - core logic
 
-outpath = os.path.join(os.getcwd(), 'my_output')
-outpath_tmp = os.path.join(os.getcwd(), 'my_output.tmp')
+- Problems
+    - Complex shell script
+    - binst upgrades are different from in-the-field upgrades:
+        - Codec is told where to find upgrade and _pulls_ it from there.
+    - New requirement: Systems/composite devices!
 
-maybe_generate_data(outpath_tmp)
+- Systems/composite devices!
+    - Codec plus peripherals
+        - Must run same/compatible versions
+    - One .pkg is not enough, also need .pkg for peripherals
+    - Introduce .loads files
+        - Tells system where to find .pkgs
+        - System pulls the .pkgs needed to upgrade all devices
+        - Same mechanism as upgrades in the field
+    - Changes to dev workflow:
+        - one or more build commands
+        - single binst to update codec + peripherals:
 
-if os.path.getsize(outpath_tmp):
-    os.rename(outpath_tmp, outpath)
-else:  # Nothing produced
-    os.remove(outpath_tmp)
-```
+- Required changes to binst:
+    - Prepare directory with .loads file and associated .pkgs
+    - Serve .loads file to system, and wait for .pkgs to be pulled.
+    - (Fall-back to old push-method remains for older/simpler systems)
 
-becomes
+- How to get there:
+    - Rewrite existing binst from bash to python
+    - Refactor into smaller modules, ease readability and maintainability
+    - Start adding new features
+        - Generating .loads files
+        - Knowledge of which peripheral .pkgs may be needed for what targets.
+        - HTTP server to server directory with .loads files and .pkg files
 
-```python
-from pathlib import Path
+- Techniques used during rewrite:
+    - argparse
+    - dictionaries!
+    - subprocess
 
-outpath = Path.cwd() / 'my_output'
-outpath_tmp = Path.cwd() / 'my_output.tmp'
-
-maybe_generate_data(outpath_tmp)
-
-if outpath_tmp.p.stat().st_size:
-    outpath_tmp.rename(outpath)
-else:  # Nothing produced
-    outpath_tmp.unlink()
-```
-
----
-layout: false
-class: center, middle, inverse
-
-# API
-
-## a quick overview
-
----
-template: default
-layout: true
-
-### API
----
-
-#### Creating a path object
-
-```python
-# string &rarr; path object
-devnull = Path('/dev/null')
-
-# class methods
-current_dir = Path.cwd()
-home_dir = Path.home()  # (since Python v3.5)
-```
+(- Adding new features:
+    - http.server
+)
 
 ---
 
-#### Joining paths
+# Summary
 
-The <code>/</code> operator replaces <code>os.path.join()</code>:
-
-```python
-doc_dir = Path('documents')
-doc_file = Path('my_doc.pdf')
-
-# path / path
-my_doc = doc_dir / doc_file
-
-# path / str
-my_doc = doc_dir / 'my_doc.pdf'
-
-# str / path
-my_doc = 'documents' / doc_file
-
-# NOT: str / str
-my_doc = 'documents' / 'my_doc.pdf'
-TypeError: unsupported operand type(s) for /: 'str' and 'str'
-```
-
-Returns a *new* path object (remember: immutable/value objects)
+- What have we learned?
+- Reusable component **and** user-friendly command-line
+- Reusable module that runs unit tests when invoked from command line.
 
 ---
 
-#### Simple attributes
-
-```python
->>> my_doc = Path.cwd() / 'documents' / 'my_doc.pdf'
-PosixPath('/home/jherland/documents/my_doc.pdf')
-
->>> my_doc.parts
-('/', 'home', 'jherland', 'documents', 'my_doc.pdf')
-
->>> list(my_doc.parents)
-[PosixPath('/home/jherland/documents'),
- PosixPath('/home/jherland'),
- PosixPath('/home'),
- PosixPath('/')]
-
->>> my_doc.parent  # &larr; os.path.dirname()
-PosixPath('/home/jherland/documents')
-
->>> my_doc.name  # &larr; os.path.basename()
-'my_doc.pdf'
-
->>> my_doc.suffix  # also: .suffixes and .stem
-'.pdf'
-```
-
----
-
-#### Absolute and relative paths
-
-- Relative &rarr; absolute: <code>.resolve()</code>
-- Absolute &rarr; relative: <code>.relative_to(other_dir)</code>
-
-```python
->>> Path.cwd()
-PosixPath('/home/jherland')
-
->>> docs = Path('documents')
-PosixPath('documents')
->>> docs.is_absolute()  # &larr; os.path.isabs()
-False
-
->>> docs_abs = docs.resolve()  # &larr; os.path.abspath()
-PosixPath('/home/jherland/documents')
->>> docs_abs.is_absolute()
-True
-
->>> docs_abs.relative_to('/home')  # &larr; os.path.relpath()
-PosixPath('jherland/documents')
-```
-
----
-
-#### More <code>os.path.*</code> replacements
-
-```python
-p.exists()  # &larr; os.path.exists()
-
-p.is_dir()  # &larr; os.path.isdir()
-p.is_file()  # &larr; os.path.isfile()
-p.is_symlink()  # &larr; os.path.islink()
-
-p.expanduser()  # &larr; os.path.expanduser() (since Python v3.5)
-p.samefile(other_path)  # &larr; os.path.samefile() (since Python v3.5)
-```
-
----
-
-#### More <code>os.*</code> replacements
-
-```python
-p.chmod(mode)  # &larr; os.chmod()
-
-p.iterdir()  # &larr; os.listdir()
-
-p.mkdir(...)  # &larr; os.mkdir() and os.makedirs()
-
-p.rename(target)  # &larr; os.rename()
-
-p.rmdir()  # &larr; os.rmdir()
-
-p.stat()  # &larr; os.stat()
-
-p.symlink_to(target)  # &larr; os.symlink()
-
-p.unlink()  # &larr; os.unlink()
-```
-
----
-
-#### Other replacements
-
-```python
-p.match(pattern)  # &larr; fnmatch.fnmatch()
-
-p.glob(pattern)  # &larr; glob.glob() (rooted at p)
-
-p.open(...)  # &larr; open()
-
-# For example:
-with in_path.open() as inf:
-    with out_path.open('w') as outf:
-        for line in inf:
-            outf.write(process(line))
-```
-
----
-
-#### Even more convenience
-
-```python
-# Read/write (short) file contents in a single method call
-p.read_bytes()
-p.read_text(encoding=None, errors=None)
-p.write_bytes(data)
-p.write_text(data, encoding=None, errors=None)
-```
-
-Note: Only since Python v3.5
-
----
-layout: false
-class: center, middle, inverse
-
-# Issues
-
----
-template: default
-layout: true
-
-### Issues
----
-
-Still included on a *provisional basis*. There may be backwards-incompatible
-changes.
-
-Missing integration with other stdlib modules and functions.
-
-Path-related APIs use strings rather than <code>Path</code> objects:
-
-```python
-    open()
-    shutil.*  # .copy(), .rmtree(), etc.
-    subprocess.*  # argv[0], executable=, or cwd=
-    codecs.open() # (et al)
-    io.*
-    os.path.*
-    os.*
-    tempfile.*
-    shelve.*
-    csv.*
-    ...
-```
-
----
-
-Techniques for combining pathlib and legacy code:
-
-```python
-# Passing paths to an API that expects a string:
-shutil.rmtree(str(path_object))
-
-# Or (since Python v3.4.5 and Python v3.5.2):
-shutil.rmtree(path_object.path)
-
-# Converting Path-or-string into Path:
-path = Path(path_or_string)
-
-# Converting Path-or-string into string:
-path_str = getattr(path_or_string, 'path', path_or_string)
-```
-
----
-
-Stuff missing from pathlib?
-
-- Replacement for <code>os.walk()</code>?
-
-- Replacement/support for <code>os.scandir()</code>? (new in Python v3.5)
-    - Integration with its <code>DirEntry</code> objects to cache stat info is
-      not trivial
-
-(That said, it's fairly straightforward to write your own
-<code>Path</code>-aware wrapper around the above)
-
-- Niggle: Appending a suffix to a path object (<code>pathstr += '.foo'</code>):
-    - **FAILS**: <code>pathobj += '.foo'</code>
-    - **UGLY?**: <code>pathobj = Path(str(pathobj) + '.foo')</code>
-    - **UGLY?**: <code>pathobj = pathobj.with_suffix(pathobj.suffix + '.foo')</code>
-    - **UGLY?**: <code>pathobj = pathobj.parent / (pathobj.name + '.foo')</code>
-
-- More?
----
-layout: false
-class: center, middle, inverse
-
-# Epilogue
-
----
-template: default
-layout: true
-
-### More details
----
-
-- Docs: https://docs.python.org/3/library/pathlib.html
-
-- History: https://www.python.org/dev/peps/pep-0428/
-
-- For Python < v3.4: https://pypi.python.org/pypi/pathlib/
-
----
-layout: false
 class: center, middle, inverse
 
 # Thanks!
