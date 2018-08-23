@@ -1,0 +1,130 @@
+Title: Building useful project utils in Python
+
+Abstract:
+"It started as a simple three-line shell script, but now it has grown into three hundred lines of bash that only works on that particular version of Ubuntu, and nobody wants to touch it anymore!"
+
+As projects grow, they accumulate scripts. You know, the stuff around the edges of your main codebase, all the small pieces of code and other "glue" that somehow keeps your entire project from falling apart: Everything from small developer tools, code generators, version control wrappers, build system helpers, all the way to your packaging and release scripts.
+
+This talk will introduce some techniques for writing, growing, and maintaining these utilities in Python. Python is the perfect language for these tasks: It keeps the simple stuff simple, and when stuff invariably grows more complex, it still keeps the code readable and maintainable (unlike most shell scripts). We will look at why this is, and how you can iteratively and naturally grow small python scripts into more complete programs (with unit tests!) that can easily be reused, either by importing them from other python scripts, or via a nice and self-documenting command-line interface.
+
+Finally, we will also look at one or more case studies where these techniques have been used to regain maintainability over existing shell scripts, and then extend them with functionality that previously seemed impossible.
+
+The talk will assume some familiarity with Python, and focus on specific techniques and modules from Python's rich standard library that I have found useful when building and maintaining these kinds of scripts in a large, embedded software project.
+
+---
+
+Focus on:
+
+ - (re)usability on multiple levels:
+    - reusable modules, functions and classes within the code.
+        - i.e. reusable from Python
+    - (re)usable/scriptable command-line
+        - i.e. usable from other scripts, from the build system
+        - friendly interface to systems programmers.
+            - argparse!
+
+ - unit testing
+ - solving _real_ problems
+ - "glue" code
+ - the "in-between" stuff, "fill in the cracks"
+ - _small_ scripts
+ - simple + self-contained modules
+ - developer tools
+ - wrappers
+ - thankless in-between stuff
+
+Used in/for:
+
+ - build systems
+ - packaging/release scripts
+ - on embedded targets
+ - auto-generating code
+
+Modules:
+ - argparse
+ - subprocess
+ - pathlib
+ - doctest, unittest, py.test
+ - json
+
+ - http?
+ - ssh/paramiko? (not in stdlib)
+
+Possible case studies:
+    - Start with simple shell script, make it bigger/more complex.
+        - Discuss when to transition to python
+        - Show how a simple python script grows bigger/more complex
+        - When to make it import-able. When to add argparse?
+    - binst shell script => binst python script + loadsfile/dir/utils
+    - gitupdate?
+    - Python script evolution:
+        1. Simple sequence of statements
+        2. Factor our useful functions
+        3. Make it importable (if __name__ == '__main')
+        4. Add a command-line interface (argparse)
+        5. Keep refactoring and exposing useful functions and data structures
+
+"We will look at why this is":
+    - data structures
+    - rich standard library
+    - modularity, functions, classes
+
+Unix philosophy: Do one thing well, and ...(?) (look up Kevlin's slides)
+
+- DO use shell scripts for the very simplest of tasks (3 lines of shell is simpler than 7 lines of python)
+- BUT switch to python as soon as you need any kind of modularity or data structures in your shell script.
+
+
+Case Study: binst
+
+    - build/test cycle:
+        - Run build to produce .pkg
+        - Run binst to install .pkg onto device
+            - Pushes .pkg onto device and triggers install + reboot
+            - Useful workflow for developers
+
+    - Show overview of binst
+        - identify larger sections
+            - command-line handling
+            - data structures
+            - core logic
+
+    - Problems
+        - Complex shell script
+        - binst upgrades are different from in-the-field upgrades:
+            - Codec is told where to find upgrade and _pulls_ it from there.
+        - New requirement: Systems/composite devices!
+
+    - Systems/composite devices!
+        - Codec plus peripherals
+            - Must run same/compatible versions
+        - One .pkg is not enough, also need .pkg for peripherals
+        - Introduce .loads files
+            - Tells system where to find .pkgs
+            - System pulls the .pkgs needed to upgrade all devices
+            - Same mechanism as upgrades in the field
+        - Changes to dev workflow:
+            - one or more build commands
+            - single binst to update codec + peripherals:
+
+    - Required changes to binst:
+        - Prepare directory with .loads file and associated .pkgs
+        - Serve .loads file to system, and wait for .pkgs to be pulled.
+        - (Fall-back to old push-method remains for older/simpler systems)
+
+    - How to get there:
+        - Rewrite existing binst from bash to python
+        - Refactor into smaller modules, ease readability and maintainability
+        - Start adding new features
+            - Generating .loads files
+            - Knowledge of which peripheral .pkgs may be needed for what targets.
+            - HTTP server to server directory with .loads files and .pkg files
+
+    - Techniques used during rewrite:
+        - argparse
+        - dictionaries!
+        - subprocess
+
+(    - Adding new features:
+        - http.server
+)

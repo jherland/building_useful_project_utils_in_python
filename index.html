@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Building useful project utils in Python</title>
+    <meta charset="utf-8">
+    <style>
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      a {
+        color: #F92672;
+        text-decoration: none;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle, inverse
+
+# Building useful project utils in Python
+
+## From spaghetti shell scripts to presentable Python
+
+Johan Herland<br />
+<a href="https://twitter.com/jherland">@jherland</a><br />
+&lt;<a href="mailto:jherland@cisco.com">jherland@cisco.com</a>&gt;<br />
+&lt;<a href="mailto:johan@herland.net">johan@herland.net</a>&gt;
+
+???
+
+Who am I?
+
+- Software Engineer at Cisco Systems Norway, developing videoconferencing systems
+- Work on:
+    - Some applicaton-level programming
+    - More underlying platform work
+    - Version control, build systems, developer tools
+
+---
+
+# Prerequisites
+
+- Basic familiarity with Unix shell scripting (bash)
+
+- Some familiarity with Python3
+    - stuck on Python2? still useful, but YMMV
+
+---
+
+# Outline
+
+- Motivation
+    - What scripts are we talking about?
+    - When are shell scripts OK?
+    - When are they not?
+    - Why is python any better?
+- Shell &rarr; Python: Tips + Techniques
+    - Organizing your scripts
+    - Command-line interfaces in python
+    - Running other programs from python
+    - Manipulating the filesystem from python
+    - Writing unit tests in python
+    - Other useful python modules for system utils?
+    - Other useful stuff?
+- Case study: binst
+- Summary
+- Q &amp; A
+
+---
+
+- Motivation
+    - What scripts are we talking about?
+        - (simple) build systems
+        - build system helpers
+        - developer tools
+        - code generators
+        - wrappers for more complex commands/workflows
+        - packaging/deployment/release scripts
+        - helper scripts on embedded targets
+
+    - When are shell scripts OK?
+        - Short!
+        - Simple!
+    - When are they not?
+        - Data structures!
+        - Complex logic
+        - Configurability
+        - Reusability
+        - Safety!
+    - Why is python any better?
+      (python vs. bash)
+        - Syntax:
+            - Shell:
+                - Reasonably easy to become productive
+                - Many pitfalls, hard to become **safe**
+                - Same as command-line. Skills are transferable.
+                - Reasonable amount of online resources. Lots of learning from others' examples. Harder to establish "best practice" vs. "common practice".
+            - Python:
+                - Reasonably easy syntax
+                - Slightly more cumbersome to integrate with other system binaries
+                - Lots of literature and resources. Most up-to-date. Harder to come across "dangerous" python examples.
+        - Data structures and types:
+            - Shell:
+                - Everything is a string
+                - <quote src="http://tldp.org/LDP/abs/html/untyped.html">Unlike many other programming languages, Bash does not segregate its variables by "type." Essentially, Bash variables are character strings, but, depending on context, Bash permits arithmetic operations and comparisons on variables. The determining factor is whether the value of a variable contains only digits.</quote>
+
+
+                - Whitespace in values often cause problems, and must be handled carefully
+                - Some support for integer arithmetic
+                - Some support for arrays
+            - Python:
+                - Dynamically (but strongly) typed
+                - Built-in types:
+                    - Numerics — int, float, complex
+                    - Sequences — list, tuple, range
+                        - Text — str
+                        - Binary data — bytes, bytearray, memoryview
+                        - Sets — set, frozenset
+                    - Mappings — dict
+                    - Others:
+                        - Modules
+                        - Classes and Class instances
+                        - Functions and Methods
+                        - Iterators and Generators
+                        - Exceptions
+                        - etc.
+        - Modularity:
+            - Shell: A file is **either** intended for immediate usage (maybe with purely-local function) **or** a bag of functions reusable by sourcing.
+            - Python: modules with "if __name__ == '__main__'" allows **both** for importability, and for immediate usage!
+        - Tools/library:
+            - Shell: Barebones/minimal language, use other system binaries to do heavy lifting
+            - Python:
+                - Very rich stdlib
+                - fairly simple to call out to other binaries, using subprocess
+        - MORE???
+
+- Shell &rarr; Python: Tips + Techniques
+    - Organizing your scripts
+        - Start by replicating your shell script in python
+            - one statement after another, no structure, everything is run from top to bottom
+        - Introduce functions
+            - Also common pattern in shell scripts
+        - Introduce the __main__ guard
+            - The fundamental trick that makes your script import-able from other python scripts
+        - Introduce main()
+            - Not a huge change, but:
+            - follows common conventions
+            - Makes it possible for another python script to import this module, and then run it as if it was the __main__ script.
+        - Split reusable functionality into separate/stand-alone modules
+        - Add unit tests to verify API + functionality of separate/stand-alone modules
+    - Command-line interfaces in python
+        - argparse
+    - Running other programs from python
+        - subprocess
+    - Manipulating the filesystem from python
+        - pathlib
+        - pathlib
+        - shutil? os?
+    - Writing unit tests in python
+    - Other useful python modules for system utils?
+    - Other useful stuff?
+- Case study: binst
+- Summary
+    - What have we learned?
+    - Reusable component **and** user-friendly command-line
+    - Reusable module that runs unit tests when invoked from command line.
+- Q &amp; A
+
+---
+layout: false
+class: center, middle, inverse
+
+# What?
+
+---
+template: default
+layout: true
+
+### What?
+---
+
+- Pathnames in Python are traditionally *strings*
+- **pathlib** represents filesystem paths as proper objects
+    - Immutable/value objects
+    - Handle Unix/Windows differences transparently
+        - Write simple code that works everywhere!
+    - Rich API for querying and manipulating paths
+    - Replaces/supersedes:
+        - Most things from <code>os.path.*</code>
+        - Many things from <code>os.*</code>
+        - <code>fnmatch.fnmatch()</code>
+        - <code>glob.glob()</code>
+        - Maybe even <code>open()</code>?
+
+---
+
+- What is it **not**?
+    - Only handles *paths*, not file objects
+        - Don't care what you do to a file after you have opened it
+    - Does not handle URIs or other *path-like* things
+
+---
+layout: false
+class: center, middle, inverse
+
+# Why?
+
+---
+template: default
+layout: true
+
+### Why?
+---
+
+- Easier and safer handling of pathnames
+- More readable code
+    - Less <code>os.path.*</code> noise in your code
+    - Moves your path names (variables or constants) towards the *left*
+      (i.e. into focus):
+
+```python
+# Before
+if os.path.isdir(path):
+    os.rmdir(path)
+
+# After:
+if path.is_dir():
+    path.rmdir()
+```
+
+---
+
+#### Typical scenario:
+
+- Python often used in build/packaging system
+- "Glue" code
+
+
+- Lots of path manipulation:
+    - Creating/removing directories
+    - Moving files around
+    - Looking for specific (types of) files
+    - Constructing/manipulating *relative* and *absolute* paths
+
+---
+layout: false
+class: center, middle, inverse
+
+# Example
+
+---
+template: default
+layout: true
+
+### Example
+---
+
+```python
+import os
+
+outpath = os.path.join(os.getcwd(), 'my_output')
+outpath_tmp = os.path.join(os.getcwd(), 'my_output.tmp')
+
+maybe_generate_data(outpath_tmp)
+
+if os.path.getsize(outpath_tmp):
+    os.rename(outpath_tmp, outpath)
+else:  # Nothing produced
+    os.remove(outpath_tmp)
+```
+
+becomes
+
+```python
+from pathlib import Path
+
+outpath = Path.cwd() / 'my_output'
+outpath_tmp = Path.cwd() / 'my_output.tmp'
+
+maybe_generate_data(outpath_tmp)
+
+if outpath_tmp.p.stat().st_size:
+    outpath_tmp.rename(outpath)
+else:  # Nothing produced
+    outpath_tmp.unlink()
+```
+
+---
+layout: false
+class: center, middle, inverse
+
+# API
+
+## a quick overview
+
+---
+template: default
+layout: true
+
+### API
+---
+
+#### Creating a path object
+
+```python
+# string &rarr; path object
+devnull = Path('/dev/null')
+
+# class methods
+current_dir = Path.cwd()
+home_dir = Path.home()  # (since Python v3.5)
+```
+
+---
+
+#### Joining paths
+
+The <code>/</code> operator replaces <code>os.path.join()</code>:
+
+```python
+doc_dir = Path('documents')
+doc_file = Path('my_doc.pdf')
+
+# path / path
+my_doc = doc_dir / doc_file
+
+# path / str
+my_doc = doc_dir / 'my_doc.pdf'
+
+# str / path
+my_doc = 'documents' / doc_file
+
+# NOT: str / str
+my_doc = 'documents' / 'my_doc.pdf'
+TypeError: unsupported operand type(s) for /: 'str' and 'str'
+```
+
+Returns a *new* path object (remember: immutable/value objects)
+
+---
+
+#### Simple attributes
+
+```python
+>>> my_doc = Path.cwd() / 'documents' / 'my_doc.pdf'
+PosixPath('/home/jherland/documents/my_doc.pdf')
+
+>>> my_doc.parts
+('/', 'home', 'jherland', 'documents', 'my_doc.pdf')
+
+>>> list(my_doc.parents)
+[PosixPath('/home/jherland/documents'),
+ PosixPath('/home/jherland'),
+ PosixPath('/home'),
+ PosixPath('/')]
+
+>>> my_doc.parent  # &larr; os.path.dirname()
+PosixPath('/home/jherland/documents')
+
+>>> my_doc.name  # &larr; os.path.basename()
+'my_doc.pdf'
+
+>>> my_doc.suffix  # also: .suffixes and .stem
+'.pdf'
+```
+
+---
+
+#### Absolute and relative paths
+
+- Relative &rarr; absolute: <code>.resolve()</code>
+- Absolute &rarr; relative: <code>.relative_to(other_dir)</code>
+
+```python
+>>> Path.cwd()
+PosixPath('/home/jherland')
+
+>>> docs = Path('documents')
+PosixPath('documents')
+>>> docs.is_absolute()  # &larr; os.path.isabs()
+False
+
+>>> docs_abs = docs.resolve()  # &larr; os.path.abspath()
+PosixPath('/home/jherland/documents')
+>>> docs_abs.is_absolute()
+True
+
+>>> docs_abs.relative_to('/home')  # &larr; os.path.relpath()
+PosixPath('jherland/documents')
+```
+
+---
+
+#### More <code>os.path.*</code> replacements
+
+```python
+p.exists()  # &larr; os.path.exists()
+
+p.is_dir()  # &larr; os.path.isdir()
+p.is_file()  # &larr; os.path.isfile()
+p.is_symlink()  # &larr; os.path.islink()
+
+p.expanduser()  # &larr; os.path.expanduser() (since Python v3.5)
+p.samefile(other_path)  # &larr; os.path.samefile() (since Python v3.5)
+```
+
+---
+
+#### More <code>os.*</code> replacements
+
+```python
+p.chmod(mode)  # &larr; os.chmod()
+
+p.iterdir()  # &larr; os.listdir()
+
+p.mkdir(...)  # &larr; os.mkdir() and os.makedirs()
+
+p.rename(target)  # &larr; os.rename()
+
+p.rmdir()  # &larr; os.rmdir()
+
+p.stat()  # &larr; os.stat()
+
+p.symlink_to(target)  # &larr; os.symlink()
+
+p.unlink()  # &larr; os.unlink()
+```
+
+---
+
+#### Other replacements
+
+```python
+p.match(pattern)  # &larr; fnmatch.fnmatch()
+
+p.glob(pattern)  # &larr; glob.glob() (rooted at p)
+
+p.open(...)  # &larr; open()
+
+# For example:
+with in_path.open() as inf:
+    with out_path.open('w') as outf:
+        for line in inf:
+            outf.write(process(line))
+```
+
+---
+
+#### Even more convenience
+
+```python
+# Read/write (short) file contents in a single method call
+p.read_bytes()
+p.read_text(encoding=None, errors=None)
+p.write_bytes(data)
+p.write_text(data, encoding=None, errors=None)
+```
+
+Note: Only since Python v3.5
+
+---
+layout: false
+class: center, middle, inverse
+
+# Issues
+
+---
+template: default
+layout: true
+
+### Issues
+---
+
+Still included on a *provisional basis*. There may be backwards-incompatible
+changes.
+
+Missing integration with other stdlib modules and functions.
+
+Path-related APIs use strings rather than <code>Path</code> objects:
+
+```python
+    open()
+    shutil.*  # .copy(), .rmtree(), etc.
+    subprocess.*  # argv[0], executable=, or cwd=
+    codecs.open() # (et al)
+    io.*
+    os.path.*
+    os.*
+    tempfile.*
+    shelve.*
+    csv.*
+    ...
+```
+
+---
+
+Techniques for combining pathlib and legacy code:
+
+```python
+# Passing paths to an API that expects a string:
+shutil.rmtree(str(path_object))
+
+# Or (since Python v3.4.5 and Python v3.5.2):
+shutil.rmtree(path_object.path)
+
+# Converting Path-or-string into Path:
+path = Path(path_or_string)
+
+# Converting Path-or-string into string:
+path_str = getattr(path_or_string, 'path', path_or_string)
+```
+
+---
+
+Stuff missing from pathlib?
+
+- Replacement for <code>os.walk()</code>?
+
+- Replacement/support for <code>os.scandir()</code>? (new in Python v3.5)
+    - Integration with its <code>DirEntry</code> objects to cache stat info is
+      not trivial
+
+(That said, it's fairly straightforward to write your own
+<code>Path</code>-aware wrapper around the above)
+
+- Niggle: Appending a suffix to a path object (<code>pathstr += '.foo'</code>):
+    - **FAILS**: <code>pathobj += '.foo'</code>
+    - **UGLY?**: <code>pathobj = Path(str(pathobj) + '.foo')</code>
+    - **UGLY?**: <code>pathobj = pathobj.with_suffix(pathobj.suffix + '.foo')</code>
+    - **UGLY?**: <code>pathobj = pathobj.parent / (pathobj.name + '.foo')</code>
+
+- More?
+---
+layout: false
+class: center, middle, inverse
+
+# Epilogue
+
+---
+template: default
+layout: true
+
+### More details
+---
+
+- Docs: https://docs.python.org/3/library/pathlib.html
+
+- History: https://www.python.org/dev/peps/pep-0428/
+
+- For Python < v3.4: https://pypi.python.org/pypi/pathlib/
+
+---
+layout: false
+class: center, middle, inverse
+
+# Thanks!
+
+## Questions?
+
+Johan Herland<br />
+<a href="https://twitter.com/jherland">@jherland</a><br />
+&lt;<a href="mailto:jherland@cisco.com">jherland@cisco.com</a>&gt;<br />
+&lt;<a href="mailto:johan@herland.net">johan@herland.net</a>&gt;
+
+<small>Slideshow created with [remark](http://gnab.github.com/remark).</small>
+
+    </textarea>
+    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+        ratio: "16:9"
+      });
+    </script>
+  </body>
+</html>
