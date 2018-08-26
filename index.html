@@ -942,57 +942,155 @@ class: center, middle, inverse
 
 ---
 
-- build/test cycle:
-    - Run build to produce .pkg
-    - Run binst to install .pkg onto device
-        - Pushes .pkg onto device and triggers install + reboot
-        - Useful workflow for developers
+## Common developer workflow
 
-- Show overview of binst
-    - identify larger sections
-        - command-line handling
-        - data structures
-        - core logic
+<img src="build_cycle1.png" width="95%"/>
 
-- Problems
-    - Complex shell script
-    - binst upgrades are different from in-the-field upgrades:
-        - Codec is told where to find upgrade and _pulls_ it from there.
-    - New requirement: Systems/composite devices!
+???
 
-- Systems/composite devices!
-    - Codec plus peripherals
-        - Must run same/compatible versions
-    - One .pkg is not enough, also need .pkg for peripherals
-    - Introduce .loads files
-        - Tells system where to find .pkgs
-        - System pulls the .pkgs needed to upgrade all devices
-        - Same mechanism as upgrades in the field
-    - Changes to dev workflow:
-        - one or more build commands
-        - single binst to update codec + peripherals:
+Build/test cycle:
+- Run build to produce .pkg
+- Run binst to install .pkg onto device
+    - Pushes .pkg onto device and triggers install + reboot
+    - Useful workflow for developers
 
-- Required changes to binst:
-    - Prepare directory with .loads file and associated .pkgs
-    - Serve .loads file to system, and wait for .pkgs to be pulled.
-    - (Fall-back to old push-method remains for older/simpler systems)
+---
+
+## <tt>binst</tt> shell script
+
+<img src="binst.sh.1.png" height="500" />
+<img src="binst.sh.2.png" height="500" />
+<img src="binst.sh.3.png" height="500" />
+<img src="binst.sh.4.png" height="500" />
+
+---
+
+## <tt>binst</tt> shell script
+
+### Stats
+
+- 450 lines of shell (<tt>bash</tt>)
+- Helper functions
+- Command-line interface (~50%)
+- Data structure (almost) (~30%)
+- Some logic:
+    - <code>while</code> loop for command-line argument parsing
+    - main <code>for</code> loop for binsting multiple targets
+    - Lots of <code>if</code>/<code>elif</code>/<code>else</code> for error handling and fallbacks.
+- Ends up here in most cases:
+
+```bash
+${cat_cmd} ${file} | ssh_wrapper root@"${ssh_dest}" ". /etc/profile; \
+  ${installimage} -k /mnt/base/active/rk -f - $installimageargs; \
+  [ -n \"${installimage[1]}\" ] && \
+  ${installimage[1]} -k /mnt/base/active/rk -f - $installimageargs"
+```
+
+???
+
+Flip back and forth to binst.sh
+
+---
+
+## <tt>binst</tt> shell script
+
+### Problems
+
+- Complex shell script
+- <tt>binst</tt> upgrades are different from in-the-field upgrades:
+    - <tt>binst</tt> *pushes* <code>.pkg</code> onto the system
+    - <tt>binst</tt> bypasses most of the upgrade machinery on the system
+    - In the field, the system is told where to find the <code>.pkg</code> and *pulls* it from there.
+- New requirement: Support systems with multiple devices
+
+---
+
+## System with multiple devices
+
+Simple systems have the camera built-in to the *codec* (device running the CE S/W)
+
+<img src="hopen.jpg" width="30%" />
+
+--
+
+Bigger systems have codec running separately from one or more cameras
+
+<img src="room_kit_plus_scenario.jpg" width="40%" />
+<img src="mx800d.jpg" width="30%" style="margin-left:5%" />
+
+---
+
+## System with multiple devices
+
+- System comprises codec plus one or more peripherals
+    - Upgrading one, but not the other, likely breaks the connection
+- Codec plus peripherals must run same/compatible versions
+- One <code>.pkg</code> is not enough, also need <code>.pkg</code> for peripherals
+- Introduce .loads files
+    - Tells system where to find <code>.pkg</code>s
+    - System pulls the <code>.pkg</code>s needed to upgrade all devices
+    - Same mechanism as upgrades in the field
+- Changes to dev workflow:
+    - one or more build commands
+    - single <tt>binst</tt> to update codec + peripherals:
+
+---
+
+## <tt>binst</tt>ing with <code>.loads</code> files
+
+<img src="build_cycle2.png" width="95%"/>
+
+???
+
+Build/test cycle:
+- Run builds to produce .pkgs for the relevant devices
+- Run binst to install .pkgs onto complete system
+    - Create .loads file with references to .pkgs
+    - Create a signature verifying authenticity of .loads file
+    - Serve .loads + signature to system
+    - Wait for system to pull required .pkgs and start install + reboot
+
+- Uses same machinery as upgrades in the field
+- Allows developers to develop + test interaction between multiple devices
+
+---
+
+## Changing <tt>binst</tt>
+
+- Required additions to <tt>binst</tt>:
+    - Prepare directory with <code>.loads</code> file, <code>.sgn</code> file and associated <code>.pkg</code>s
+    - Serve this directory over HTTP
+    - Tell codec to get <code>.loads</code> file from server, and wait for the required </code>.pkg</code>s to be pulled.
+    - Retain fall-back to old push-method for older and non-functioning systems
 
 - How to get there:
-    - Rewrite existing binst from bash to python
-    - Refactor into smaller modules, ease readability and maintainability
-    - Start adding new features
-        - Generating .loads files
-        - Knowledge of which peripheral .pkgs may be needed for what targets.
-        - HTTP server to server directory with .loads files and .pkg files
+    - *First*: rewrite existing <tt>binst</tt> from Bash into Python
+    - Then refactor code to ease readability and maintainability
+    - Finally start adding new features
+        - Generating <code>.loads</code> files
+        - Knowledge of which peripheral <code>.pkg</code>s may be needed for what targets.
+        - Generating signatures for <code>.loads</code> files
+        - HTTP server to serve directory with <code>.loads</code> files and <code>.pkg</code> files
+
+---
 
 - Techniques used during rewrite:
     - argparse
     - dictionaries!
     - subprocess
 
-(- Adding new features:
+- Adding new features:
     - http.server
-)
+
+- loadsfile.py
+- loadssign.py
+- loadsdir.py
+
+---
+
+class: center, middle, inverse
+
+# That's all folks!
 
 ---
 
