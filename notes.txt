@@ -69,7 +69,10 @@ Possible case studies:
     - rich standard library
     - modularity, functions, classes
 
-Unix philosophy: Do one thing well, and ...(?) (look up Kevlin's slides)
+Unix philosophy:
+
+    This is the Unix philosophy: Write programs that do one thing and do it well. Write programs to work together. (Write programs to handle text streams, because that is a universal interface.)
+    -- Doug McIlroy
 
 - DO use shell scripts for the very simplest of tasks (3 lines of shell is simpler than 7 lines of python)
 - BUT switch to python as soon as you need any kind of modularity or data structures in your shell script.

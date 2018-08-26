@@ -20,6 +20,21 @@
       li {
         padding: 2px;
       }
+      blockquote {
+        padding: 20px;
+        background: #f3f3f3;
+      }
+      p {
+        margin-bottom: 0;
+      }
+      pre {
+        margin-top: 0;
+      }
+
+      .ordinal {
+        vertical-align: super;
+        font-size: small;
+      }
 
       .remark-code, .remark-inline-code {
         font-family: 'Ubuntu Mono';
@@ -88,8 +103,7 @@ Who am I?
     - Running other programs from Python
     - Manipulating the filesystem from Python
     - Writing unit tests in Python
-    - Other useful Python modules for system utils?
-    - Other useful stuff?
+    - A controversial take on error handling
 - Case study &mdash; <code>binst</code>
 - Summary
 - Q &amp; A
@@ -123,7 +137,7 @@ class: split-50
 ]
 .column[
 
-### Packaging, deployment, release, etc.
+### Packaging, deployment, release, ...
 
 - Signing images
 - Publishing assets
@@ -150,6 +164,9 @@ class: split-50
 - No data structures
 
 ]
+
+--
+
 .column[
 
 ### Cons
@@ -193,6 +210,9 @@ touch $filename
 ```
 
 ]
+
+--
+
 .column[
 
 ### Python
@@ -221,12 +241,16 @@ class: split-50
 - Some support for integer arithmetic
 - Some support for arrays
 
-<blockquote><small>
-<a href="http://tldp.org/LDP/abs/html/untyped.html">Advanced Bash-Scripting Guide</a> says:<br />
-&laquo;Unlike many other programming languages, Bash does not segregate its variables by "type." Essentially, Bash variables are character strings, but, depending on context, Bash permits arithmetic operations and comparisons on variables. The determining factor is whether the value of a variable contains only digits.&raquo;
-</small></blockquote>
+<blockquote>
+<small>&laquo;Unlike many other programming languages, Bash does not segregate its variables by "type." Essentially, Bash variables are character strings, but, depending on context, Bash permits arithmetic operations and comparisons on variables. The determining factor is whether the value of a variable contains only digits.&raquo;</small><br />
+<br />
+&mdash; <a href="http://tldp.org/LDP/abs/html/untyped.html">Advanced Bash-Scripting Guide</a>
+</blockquote>
 
 ]
+
+--
+
 .column[
 
 ### Python
@@ -235,8 +259,8 @@ class: split-50
 - Built-in types:
     - Numerics — <code>int</code>, <code>float</code>, <code>complex</code>
     - Sequences — <code>list</code>, <code>tuple</code>, <code>range</code>
-        - Text and binary data — <code>str</code>, <code>bytes</code>, &hellip;
-        - Sets — <code>set</code>, &hellip;
+        - Text and binary data — <code>str</code>, <code>bytes</code>, ...
+        - Sets — <code>set</code>, ...
     - Mappings — <code>dict</code>
     - Others:
         - Modules
@@ -244,7 +268,7 @@ class: split-50
         - Functions and Methods
         - Iterators and Generators
         - Exceptions
-        - etc.
+        - ...
 
 ]
 
@@ -258,12 +282,29 @@ class: split-50
 
 ### Shell
 
-A file is **either** intended for immediate usage (maybe with purely-local function) **or** a bag of functions reusable by sourcing.
+*Within* files: functions
+- (sometimes non-obvious behavior, though, e.g. variables have global scope by default)
+
+*Between* files: access in two ways:
+1. Direct call (*think:* run as subprocess)
+2. Use <code>source</code><br />
+   (*think:* <code>#include</code> &mdash; no namespaces!)
+
+However, a script cannot easily figure out if it has been *called* or *sourced*, so scripts are typically **either** written for immediate usage **or** a as *bag of functions* reusable by sourcing (but does nothing when called).
 
 ]
+
+--
+
 .column[
 
 ### Python
+
+*Within* files: functions, classes, data, ...
+
+*Between* files: access in two ways:
+1. <code>import</code>
+2. Call via <code>subprocess</code>
 
 Modules with <code>\_\_main\_\_</code> guards allows **both** for importability, and for immediate usage!
 
@@ -273,11 +314,11 @@ Modules with <code>\_\_main\_\_</code> guards allows **both** for importability,
 
 class: split-50
 
-## Why is Python better? &mdash; Modularity, cont.
+## Why is Python better? &mdash; Modularity (cont.)
 
 .column[
 
-<code>foo.sh</code>:
+<tt>foo.sh</tt>:
 ```bash
 #!/bin/sh
 
@@ -288,7 +329,7 @@ foo() {
 }
 ```
 
-<code>bar.sh</code>:
+<tt>bar.sh</tt>:
 ```bash
 #!/bin/sh
 
@@ -298,9 +339,12 @@ foo()
 ```
 
 ]
+
+--
+
 .column[
 
-<code>foo.py</code>:
+<tt>foo.py</tt>:
 ```python
 #!/usr/bin/env python3
 
@@ -310,10 +354,10 @@ def foo():
     print('This is foo')
 
 if __name__ == '__main__':
-    print("Not run when this file is imported")
+    print("Skipped when this file is imported")
 ```
 
-<code>bar.py</code>:
+<tt>bar.py</tt>:
 ```python
 #!/usr/bin/env python3
 
@@ -334,15 +378,19 @@ class: split-50
 
 ### Shell
 
-- Language itself is fairly minimal
+- Language itself is very minimal
 - Use system binaries from Unix ecosystem to do heavy lifting
 
 ]
+
+--
+
 .column[
 
 ### Python
 
 - Very rich stdlib &mdash; can do most things "within" the language
+- Lots more 3<span class="ordinal">rd</span>-party modules available (e.g. Python Package Index)
 - Use <code>subprocess</code> module to call out to other binaries
 
 ]
@@ -357,64 +405,532 @@ class: center, middle, inverse
 
 ---
 
-## Organizing your scripts
+## Code organization
 
-- Start by replicating your shell script in Python
-    - one statement after another, no structure, everything is run from top to bottom
-- Introduce functions
-    - Also common pattern in shell scripts
-- Introduce the __main__ guard
-    - The fundamental trick that makes your script import-able from other Python scripts
-- Introduce main()
-    - Not a huge change, but:
-    - follows common conventions
-    - Makes it possible for another Python script to import this module, and then run it as if it was the __main__ script.
+- Start by simply transcribing your shell script into Python!
+    - One statement after another
+    - No change in structure
+    - Everything is run from top to bottom
+
+--
+
+- Refactor code into functions, classes, data structures, ...
+    - Incrementally improve the structure of your script
+
+--
+
+- Add the <code>\_\_main\_\_</code> guard
+    - Makes the functions/classes/data reusable from other scripts
+
+--
+
+- Add a <code>main()</code> function
+    - Common convention in python
+    - Other scripts can now <code>import</code> + <code>main()</code> instead of <code>subprocess.run()</code>
+
+--
+
 - Split reusable functionality into separate/stand-alone modules
-- Add unit tests to verify API + functionality of separate/stand-alone modules
+    - Add unit tests here to verify API + functionality
 
 ---
 
 ## Command-line interfaces in Python
 
-- argparse
-- Unix conventions:
-    - non-zero exit code on failure, otherwise exit 0
-    - use stdin/stdout for default input/output
-    - log errors to stderr (talk about <code>logging</code>?)
+### Follow Unix conventions:
+- Exit code 0 &rarr; success, non-zero &rarr; failure
+    - Default exit code from python is 0
+    - Uncaught exceptions result in exit code 1
+- Use <code>sys.stdin</code>/<code>sys.stdout</code> for default I/O
+    - <code>print()</code> defaults to <code>sys.stdout</code>
+- Log errors to <code>sys.stderr</code>
+    - The <code>logging</code> module defaults to <code>sys.stderr</code>
+- Mandatory command-line args are *positional*
+- Optional command-line args use <code>--dashes</code>
+
+--
+
+### Use <code>argparse</code> &darr;
 
 ---
 
-## Running other programs from Python
+Using <code>argparse</code>:
 
-- <code>subprocess</code>
+.column[
+
+```python
+#!/usr/bin/env python3
+'''Calculate the square of a given number.'''
+
+import argparse
+import sys
+
+
+def calc(num, exp):
+    return num ** exp
+
+
+def main():
+    parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
+    parser.add_argument(
+        'num', type=int,
+        help='the number to be squared')
+    parser.add_argument(
+        '--cube', '-3', action='store_true',
+        help='calculate the cube (instead of square)')
+    parser.add_argument(
+        '--file', '-f', type=argparse.FileType('w'), default=sys.stdout,
+        help='write result here (stdout by default)')
+
+    args = parser.parse_args()
+    result = calc(args.num, 3 if args.cube else 2)
+    print(result, file=args.file)
+
+
+if __name__ == '__main__':
+    main()
+```
+
+]
+
+--
+
+.column[
+
+```python
+
+# <- Module docstring
+#    (.__doc__ on the module)
+
+
+
+
+# <- Reusable function:
+     import myscript
+     myscript.calc(123, 2)
+
+
+# <- Reuse module docstring in
+#    usage help text
+# <- Positional arg of type int
+
+
+# <- Optional arg, boolean,
+#    default: False
+
+# <- Optional arg, open file
+
+
+
+
+
+
+
+# <- __main__ guard
+```
+
+]
 
 ---
 
-## Manipulating the filesystem from Python
+```xml
+$ ./myscript.py
+usage: myscript.py [-h] [--cube] [--file FILE] num
+myscript.py: error: the following arguments are required: num
+```
 
-- <code>pathlib</code>
-- <code>shutil</code>?
-- <code>os</code>?
+--
+
+```xml
+$ ./myscript.py -h
+usage: myscript.py [-h] [--cube] [--file FILE] num
+
+Calculate the square of a given number.
+
+positional arguments:
+  num                   the number to be squared
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --cube, -3            calculate the cube (instead of square)
+  --file FILE, -f FILE  write result here (stdout by default)
+```
+
+--
+
+```xml
+$ ./myscript.py 5
+25
+```
+
+--
+
+```xml
+$ ./myscript.py 5 -3
+125
+```
+
+--
+
+```xml
+$ ./myscript.py 10 -3 -f foo
+$ cat foo
+1000
+```
 
 ---
+
+## Running other programs from Python &mdash; <code>subprocess</code>
+
+### Simple cases
+
+```python
+import subprocess
+
+# Prepare command as a list of strings
+argv = ['ping', '-c1', 'google.com']
+
+# Run command, get its exit code
+exitcode = subprocess.run(argv).returncode
+
+# Run command, raise exception on non-zero exit code
+subprocess.run(argv, check=True)
+
+# Run command, raise exception if it fails, capture its output
+result = subprocess.run(argv, check=True, capture_output=True)
+output, errors = result.stdout, result.stderr
+```
+
+--
+
+### More complex cases
+
+See https://docs.python.org/3/library/subprocess.html
+
+---
+
+class: split-50
+
+## Manipulating the filesystem from Python &mdash; <code>pathlib</code>
+
+.column[
+
+- Features:
+    - Creating/moving/removing files and dirs
+    - Looking for specific (types of) files
+    - Handling *relative* vs *absolute* paths
+- Replaces/supersedes:
+    - Parts of <code>os.path.\*</code> and elsewhere in <code>os.\*</code>
+    - <code>fnmatch.fnmatch()</code> and <code>glob.glob()</code>
+- https://docs.python.org/3/library/pathlib.html
+
+### Other modules
+
+- <code>os</code> and <code>os.path</code>
+- <code>shutil</code>
+
+]
+
+--
+
+.column[
+
+```python
+from pathlib import Path
+
+mydir = Path.cwd() / 'mydir'
+mydir.mkdir(exist_ok=True)
+
+foo = mydir / 'foo.txt'
+if foo.exists():
+    foo.rename(foo.with_suffix('.backup'))
+
+with foo.open('w') as f:
+    for path in mydir.iterdir():
+        print(path.relative_to(mydir), file=f)
+
+for path in mydir.glob('*.backup'):
+    path.unlink()
+```
+
+]
+
+---
+
+class: split-50
 
 ## Writing unit tests in Python
 
-- <code>doctest</code>
-- <code>unittest</code>
-- <code>py.test</code> (not in stdlib)
+.column[
+
+### What to test
+
+- As much as possible
+- Certainly reusable functionality
+
+### Available frameworks
+
+- <a href="https://docs.python.org/3/library/doctest.html"><code>doctest</code></a>
+- <a href="https://docs.python.org/3/library/unittest.html"><code>unittest</code></a>
+- <a href="https://docs.pytest.org/en/latest/"><code>pytest</code></a> (not in the standard library)
+- Many others...
+
+]
+
+--
+
+.column[
+
+### Note
+
+This is not a talk on test frameworks or unit testing in general.
+
+For everything but the smallest scripts, put your tests in separate files, or even separate directories, but here we'll look at how you can put small tests in the same file as the rest of the script.
+
+]
 
 ---
 
-## Other useful Python modules for system utils?
+Remember?
+```python
+#!/usr/bin/env python3
+'''Calculate the square of a given number.'''
+
+import argparse
+import sys
+
+
+def calc(num, exp):
+    return num ** exp
+
+
+def main():
+    parser = argparse.ArgumentParser(description=sys.modules[__name__].__doc__)
+    parser.add_argument(
+        'num', type=int,
+        help='the number to be squared')
+    parser.add_argument(
+        '--cube', '-3', action='store_true',
+        help='calculate the cube (instead of square)')
+    parser.add_argument(
+        '--file', '-f', type=argparse.FileType('w'), default=sys.stdout,
+        help='write result here (stdout by default)')
+
+    args = parser.parse_args()
+    result = calc(args.num, 3 if args.cube else 2)
+    print(result, file=args.file)
+
+
+if __name__ == '__main__':
+    main()
+```
 
 ---
 
-## Other useful stuff?
+class: split-50
 
-- Simplify error handling:
-    - Allowing exceptions to terminate program
-    - Usefulness of tracebacks
+## Writing unit tests in Python &mdash; <code>doctest</code>
+
+.column[
+
+Ad-hoc testing:
+
+```bash
+$ python
+Python 3.7.0 (default, Jul 15 2018, 10:44:58)
+[...]
+>>> import myscript
+>>> myscript.calc(3, 2)
+9
+```
+
+Let's formalize that a bit:
+
+```python
+def calc(num, exp):
+    '''Return 'num' raised to the power of 'exp'.
+
+    >>> [calc(0, 2), calc(1, 2), calc(2, 2)]
+    [0, 1, 4]
+    >>> [calc(0, 3), calc(1, 3), calc(2, 3)]
+    [0, 1, 8]
+    '''
+    return num ** exp
+```
+
+]
+
+--
+
+.column[
+
+Run tests from command-line:
+```bash
+$ python -m doctest myscript.py -v
+Trying:
+    [calc(0, 2), calc(1, 2), calc(2, 2)]
+Expecting:
+    [0, 1, 4]
+ok
+Trying:
+    [calc(0, 3), calc(1, 3), calc(2, 3)]
+Expecting:
+    [0, 1, 8]
+ok
+2 items had no tests:
+    myscript
+    myscript.main
+1 items passed all tests:
+   2 tests in myscript.calc
+2 tests in 3 items.
+2 passed and 0 failed.
+Test passed.
+```
+
+Run tests from within the script:
+
+```python
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
+```
+
+]
+
+---
+
+class: split-50
+
+## Writing unit tests in Python &mdash; <code>unittest</code>
+
+.column[
+
+```python
+import unittest
+
+...
+
+class TestSquare(unittest.TestCase):
+
+    def test_zero_squared_is_zero(self):
+        self.assertEqual(0, calc(0, 2))
+
+    def test_one_squared_is_one(self):
+        self.assertEqual(1, calc(1, 2))
+
+    def test_two_squared_is_four(self):
+        self.assertEqual(4, calc(2, 2))
+
+
+class TestCube(unittest.TestCase):
+
+    def test_zero_cubed_is_zero(self):
+        self.assertEqual(0, calc(0, 3))
+
+    def test_one_cubed_is_one(self):
+        self.assertEqual(1, calc(1, 3))
+
+    def test_two_cubed_is_eight(self):
+        self.assertEqual(8, calc(2, 3))
+```
+
+]
+
+--
+
+.column[
+
+Run tests from command-line:
+```bash
+$ python -m unittest myscript.py
+......
+------------------------------------------------------
+Ran 6 tests in 0.000s
+
+OK
+```
+
+Run tests from within the script:
+```python
+if __name__ == '__main__':
+    unittest.main()
+```
+
+]
+
+---
+
+class: split-50
+
+## Writing unit tests in Python &mdash; <code>pytest</code>
+
+.column[
+
+```python
+def test_calc():
+    vectors = [
+        (0, 2, 0), (1, 2, 1), (2, 2, 4),
+        (0, 3, 0), (1, 3, 1), (2, 3, 8),
+    ]
+    for num, exp, expect in vectors:
+        assert calc(num, exp) == expect
+```
+
+]
+
+--
+
+.column[
+
+Run tests from command-line:
+```bash
+$ pytest myscript.py
+================ test session starts =================
+[...]
+collected 1 item
+
+myscript.py .                                  [100%]
+
+============== 1 passed in 0.01 seconds ==============
+```
+
+Run tests from within the script:
+```python
+if __name__ == '__main__':
+    import pytest
+    pytest.main([__file__])
+```
+
+]
+
+---
+
+## A controversial take on error handling
+
+--
+
+### Don't!
+
+--
+
+- Python tracebacks are useful for initial debugging
+- Simplify and remove error handling
+- Allow Python exceptions to *escape* and terminate the program
+- Guarantees non-zero exit code
+
+Catching exceptions, and replacing them with a (generic) error message often hides useful details about the error, whereas the traceback points directly at a relevant line of code, and often includes the value that triggered the error.
+
+--
+
+### That said, ...
+
+Simple usage/user errors are best handled with a simple error message (but <code>argparse</code> gives you this for free).
+
+Tracebacks may not work as well if the distance between script users and script maintainers is large.
+
+???
+
+May give the wrong impression that you don't care enough about errors.
 
 ---
 
@@ -423,6 +939,8 @@ class: center, middle, inverse
 # Case study
 
 ## <tt>binst</tt>
+
+---
 
 - build/test cycle:
     - Run build to produce .pkg
@@ -478,11 +996,37 @@ class: center, middle, inverse
 
 ---
 
+class: split-50
+
 # Summary
 
-- What have we learned?
-- Reusable component **and** user-friendly command-line
-- Reusable module that runs unit tests when invoked from command line.
+.column[
+
+- Use shell scripts for the simplest tasks (3 lines of shell is simpler than 7 lines of python)
+- Switch to Python when things start growing
+    - Complex logic
+    - Data structures
+    - Modularity/reuse
+    - Configurability
+- Write Python scripts that can be imported **and** run from the command-line
+- Use the Python standard library:
+    - <code>argparse</code>
+    - <code>subprocess</code>
+    - <code>pathlib</code>
+
+]
+
+--
+
+.column[
+
+<blockquote>
+&laquo;This is the Unix philosophy: Write programs that do one thing and do it well. Write programs to work together. Write programs to handle text streams, because that is a universal interface.&raquo;<br />
+<br />
+&mdash; Doug McIlroy
+</blockquote>
+
+]
 
 ---
 
