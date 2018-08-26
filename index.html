@@ -55,6 +55,8 @@
       .column:first-of-type { float: left; }
       .column { float: right; }
       .split-50 .column { width: 48%; }
+      .split-33 .column:first-of-type { width: 32%; }
+      .split-33 .column { width: 64%; }
     </style>
   </head>
   <body>
@@ -98,15 +100,17 @@ Who am I?
     - Shell scripts! What are they good for?
     - Why is Python better?
 - Shell &rarr; Python &mdash; Tips + Techniques
-    - Organizing your scripts
+    - Code organization
     - Command-line interfaces in Python
     - Running other programs from Python
     - Manipulating the filesystem from Python
     - Writing unit tests in Python
     - A controversial take on error handling
 - Case study &mdash; <code>binst</code>
+    - A real-world rewrite from Shell to Python
+    - Adding features that would have been impossible in Shell
 - Summary
-- Q &amp; A
+- Q & A
 
 ---
 
@@ -1074,18 +1078,312 @@ Build/test cycle:
 
 ---
 
-- Techniques used during rewrite:
-    - argparse
-    - dictionaries!
-    - subprocess
+class: split-50
 
-- Adding new features:
-    - http.server
+## Rewriting <tt>binst</tt> from Shell to Python &mdash; Proper data structures
 
-- loadsfile.py
-- loadssign.py
-- loadsdir.py
+.column[
 
+```bash
+for target in "${targetarray[@]}"; do
+    filter=
+    finishcmd=
+    file=
+    echo "Installing ${target}"
+    case "${target}" in
+        asterix)
+            desc="Asterix Complete Image, target arm linux"
+            ;;
+        asterix.apps)
+            buildtarget="asterix /asterix/a8/apps"
+            desc="Asterix arm-a8 application code, target arm linux"
+            targetpath=/mnt/base/active/apps.img
+            postbinstcmd="/bin/mainrestart update"
+            ;;
+        asterix.gui)
+            buildtarget="asterix.gui"
+            desc="Asterix GUI code, target arm linux"
+            finaltargetpath=/mnt/base/active/gui.img
+            targetpath="$finaltargetpath.tmp"
+            postbinstcmd="/etc/init.d/S13gui unmount_img > /dev/null 2>&1 &&
+                          mv $targetpath $finaltargetpath &&
+                          /etc/init.d/S13gui mount_img > /dev/null 2>&1"
+            ;;
+        ...
+```
+
+]
+.column[
+
+```python
+TARGETS = {
+    'asterix': {
+        'desc': 'Asterix complete image, target arm linux',
+    },
+    'asterix.apps': {
+        'desc': 'Asterix arm-a8 application code, target arm linux',
+        'subtarget': '/asterix/a8/apps',
+        'destpath': '/mnt/base/active/apps.img',
+        'posthook': '/bin/mainrestart update',
+    },
+    'asterix.gui': {
+        'desc': 'Asterix GUI code, target arm linux',
+        'buildtarget': 'asterix.gui',
+        'destpath': '/mnt/base/active/gui.img.tmp',
+        'posthook': '''\
+            /etc/init.d/S13gui unmount_img > /dev/null 2>&1 &&
+            mv "$destpath" "${destpath%.tmp}" &&
+            /etc/init.d/S13gui mount_img > /dev/null 2>&1''',
+    },
+    ...
+```
+
+]
+
+???
+
+Might not look like a big change, but the python version is not buried in code and logic. Another python script may <code>import binst</code> and query the <code>TARGETS</code> dict.
+
+---
+
+class: split-33
+
+## Rewriting <tt>binst</tt> from Shell to Python &mdash; Command-line interface
+
+.column[
+
+```bash
+show_prods() {
+    cat <<EOF
+...
+
+usage() {
+    cat <<EOF
+...
+
+...
+
+while [ -n "$1" ]; do
+    case "$1" in
+        --tlist|--list-targets)
+            listtargets=1
+            ;;
+        -h|--help)
+            help=1
+            ;;
+        -f|--file)
+            shift
+            if [ -z "$1" ]; then
+                fail=1
+                help=1
+            fi
+            userfile="$1"
+            ;;
+        ...
+```
+
+]
+.column[
+
+```python
+def parse_args(*args):
+    parser = argparse.ArgumentParser(
+        usage=USAGE, description=sys.modules[__name__].__doc__)
+
+    class ListTargets(argparse.Action):
+        def __init__(self, default=argparse.SUPPRESS, **kwargs):
+            super().__init__(nargs=0, default=default, **kwargs)
+
+        def __call__(self, parser, *args):
+            print('\n'.join(sorted(TARGETS.keys())))
+            parser.exit()
+
+    parser.add_argument(
+        '--list-targets', '--tlist', action=ListTargets,
+        help='List available targets.')
+
+    # Allow positional <target> to alternatively be specified with -t/--target
+    target_spec = parser.add_mutually_exclusive_group(required=True)
+    target_spec.add_argument(
+        'target', nargs='?', choices=sorted(TARGETS.keys()),
+        metavar='<target>', help='Install image for this build target.')
+    target_spec.add_argument(
+        '--target', '-t', dest='target_alt', choices=sorted(TARGETS.keys()),
+        metavar='<target>', help='Install image for this build target.')
+    ...
+```
+
+]
+
+???
+
+Command-line interface code has been consolidated into a single function.
+
+---
+
+## <tt>binst</tt> rewritten to Python
+
+### Stats
+
+- 366 lines of Python (~19% reduction)
+- Command-line interface (<20%)
+- Data structure (~33%)
+
+???
+
+Flip back and forth to binst.py
+
+--
+
+### Next:
+
+- Add <code>.loads</code> file generation
+- Add signature generation
+- Add HTTP server serving directory with the above + <code>.pkg</code> files
+
+---
+
+## <tt>loadsfile.py</tt>
+
+244 lines of Python, imported by <tt>binst</tt>, but also stand-alone:
+
+```q
+$ ./loadsfile.py -h
+usage: loadsfile.py [-h]
+                    [--target {asterix,asterix.nocrypto,carbon,drishti,tempo,sunrise,zenith,halley,moody,...}]
+                    [--file FILE] [--output OUTPUT] [--base-url BASE_URL]
+                    [--pkgextract PKGEXTRACT] [--verify]
+
+Utility for building .loads files around our build products. .loads file are
+JSON documents that declare a collection of related software images (.pkg
+files) for one or more of our products. .loads files are an important part of
+how we distribute software upgrades for our products. See
+https://rdwiki.cisco.com/wiki/Swupgrade for more details.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --target {asterix,asterix.nocrypto,carbon,drishti,tempo,sunrise,zenith,halley,moody,pyramid,idefix}
+                        Target to include in generated .loads file
+  --file FILE, -f FILE  PKG path corresponding to each given --target option
+  --output OUTPUT, -o OUTPUT
+                        Where to write the resulting .loads file (default:
+                        stdout)
+  --base-url BASE_URL   Prefix to PKG filenames in resulting .loads file
+                        (default: "")
+  --pkgextract PKGEXTRACT
+                        Path to pkgextract binary (default: find in $PATH)
+  --verify              Do not reuse existing .pkg.loads files.
+```
+
+???
+
+Flip back and forth to loadsfile.py
+
+---
+
+## <tt>loadssign.py</tt>
+
+295 lines of Python, imported by <tt>binst</tt>, but also stand-alone:
+
+```q
+$ ./loadssign.py -h
+usage: loadssign.py [-h] [--release] [--test] {ticket,sign,verify} ...
+
+Utility for signing .loads files with local test keys or SWIMS release keys.
+.loads files must be signed in order for their contents to be trustworthy.
+This is an important part of how we distribute software upgrades for our
+products. See https://rdwiki.cisco.com/wiki/Swupgrade for more details.
+
+positional arguments:
+  {ticket,sign,verify}
+    ticket              Create a SWIMS ticket for signing release S/W
+    sign                Generate a .loads signature
+    verify              Verify a .loads signature
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --release             Sign/verify with key/certificate for release S/W
+  --test                Sign/verify with key/certificate for test S/W
+```
+
+???
+
+Flip back and forth to loadssign.py
+
+---
+
+## <tt>loadsdir.py</tt>
+
+519 lines of Python, imported by <tt>binst</tt>, but also stand-alone:
+
+```q
+$ ./loadsdir.py -h
+usage: loadsdir.py [-h]
+                   [--target {asterix,asterix.nocrypto,carbon,drishti,tempo,sunrise,zenith,halley,moody,...}]
+                   [--file FILE] [--version VERSION] [--loads-name LOADS_NAME]
+                   [--symlink] [--copy] [--deps] [--objdir OBJDIR]
+                   [--validate] [--ticket TICKET] [--serve]
+                   destination
+
+Utility for building loads directories around our build products. loads dirs
+are directories containing a .loads file and all the PKG files referenced from
+the .loads file. See https://rdwiki.cisco.com/wiki/Swupgrade for more details.
+
+positional arguments:
+  destination           Where to write the loads directory contents
+
+optional arguments:
+  [...]
+  --symlink             Symlink PKG files into loads dir (this is the default behavior)
+  --copy                Copy PKG files into loads dir (instead of symlinking)
+  --deps, -d            Automatically include dependencies of the given target
+  --objdir OBJDIR, -O OBJDIR
+                        Look here for dependents' build output (default: _build)
+  --validate            Validate any .loads and .pkg files found within the loads dir.
+  --ticket TICKET       Use this SWIMS ticket to verify .loads signatures.
+  --serve               Serve loads dir over HTTP until you press Ctrl+C.
+```
+
+???
+
+Flip back and forth to loadsdir.py
+
+---
+
+## Integrating HTTP server into <tt>binst.py</tt>
+
+```python
+    if args.loads:
+        assert args.target.support_loads()
+        server = LoadsServer(args.target, image_path, args.objdir)
+        script = '; '.join([
+            'origin=$(echo $SSH_CLIENT | cut -d" " -f1)',
+            'upgrade_url="http://$origin:{0.port}/{0.loadspath}"'.format(server),
+            'echo "xcom SystemUnit SoftwareUpgrade URL: $upgrade_url" | tsh',
+        ])
+        ssh_cmd = build_ssh_cmd(
+            remote_user,
+            ssh_address(args.destination),
+            script,
+            ssh=args.target.ssh)
+        print('Triggering {} to upgrade from our port {}...'.format(
+            args.destination, server.port))
+        if args.verbose:
+            print('Running: {}'.format(ssh_cmd))
+        if subprocess.call(ssh_cmd, shell=True) != 0:
+            print('Failed to trigger upgrade (command: {}).'.format(ssh_cmd))
+        else:  # Hand control over to loads server.
+            if server.serve():  # Files were served to destination. We're done.
+                return 0
+            else:  # Destination failed to request anything from us.
+                print('No upgrade requests from {}!'.format(args.destination))
+        server.cleanup()
+        print('Falling back to old/--no-loads behavior...')
+```
+
+???
+
+This is *roughly* the code that was added in the middle of <tt>binst</tt>'s <code>main()</code>
 ---
 
 class: center, middle, inverse
@@ -1106,7 +1404,9 @@ class: split-50
     - Data structures
     - Modularity/reuse
     - Configurability
-- Write Python scripts that can be imported **and** run from the command-line
+- Write Python scripts that can *both* be imported *and* run from the command-line
+- Refactor mercilessly
+- Unit tests gives you confidence to refactor!
 - Use the Python standard library:
     - <code>argparse</code>
     - <code>subprocess</code>
@@ -1146,7 +1446,8 @@ Johan Herland<br />
     </script>
     <script>
       var slideshow = remark.create({
-        ratio: "16:9"
+        ratio: "16:9",
+        navigation: { click: true }
       });
     </script>
   </body>
