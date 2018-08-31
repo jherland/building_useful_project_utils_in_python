@@ -22,7 +22,7 @@
       }
       blockquote {
         padding: 20px;
-        background: #f3f3f3;
+        background: rgba(240, 240, 240, 0.5);
       }
       p {
         margin-bottom: 0;
@@ -38,12 +38,42 @@
 
       .remark-code, .remark-inline-code {
         font-family: 'Ubuntu Mono';
-        background: #e8e8e8;
+        background: rgba(240, 240, 240, 0.5) !important;
+      }
+      .remark-inline-code {
+        font-family: 'Ubuntu Mono';
+        background: rgba(240, 240, 240, 0.90);
         padding: 2px 5px;
       }
 
+
+      .remark-slide-content {
+        background:
+          linear-gradient(
+            rgba(255, 255, 255, 0.75),
+            rgba(255, 255, 255, 0.25)
+          ),
+          url("light_bg.jpg"),
+          #ffffff;
+        background-size: cover;
+      }
+
+      .inverse-empty {
+        background:
+          url("space_bg.jpg"),
+          #272822;
+        background-size: cover;
+        color: #777872;
+      }
       .inverse {
-        background: #272822;
+        background:
+          linear-gradient(
+            rgba(0, 0, 0, 0.5),
+            rgba(0, 0, 0, 0.5)
+          ),
+          url("space_bg.jpg"),
+          #272822;
+        background-size: cover;
         color: #777872;
         text-shadow: 0 0 20px #333;
       }
@@ -61,6 +91,10 @@
   </head>
   <body>
     <textarea id="source">
+
+class: inverse-empty
+
+---
 
 class: center, middle, inverse
 
@@ -917,8 +951,9 @@ if __name__ == '__main__':
 
 --
 
-- Python tracebacks are useful for initial debugging
-- Simplify and remove error handling
+- Sloppy error handling is worse than _no_ error handling
+- Python tracebacks are actually useful for debugging
+- Simplify and remove error handling that might otherwise obscure the source of the error
 - Allow Python exceptions to *escape* and terminate the program
 - Guarantees non-zero exit code
 
