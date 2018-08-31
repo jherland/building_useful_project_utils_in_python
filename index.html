@@ -90,6 +90,9 @@
       pre {
         margin-top: 0;
       }
+      tt, code {
+        font-family: 'Ubuntu Mono';
+      }
 
       .ordinal {
         vertical-align: super;
@@ -147,6 +150,8 @@
       .split-50 .column { width: 48%; }
       .split-33 .column:first-of-type { width: 32%; }
       .split-33 .column { width: 64%; }
+      .split-72 .column:first-of-type { width: 72%; }
+      .split-72 .column { width: 27%; }
     </style>
   </head>
   <body>
@@ -552,6 +557,8 @@ class: center, middle, inverse
 
 ---
 
+class: split-72
+
 Using <code>argparse</code>:
 
 .column[
@@ -608,9 +615,9 @@ if __name__ == '__main__':
      myscript.calc(123, 2)
 
 
-# <- Reuse module docstring in
-#    usage help text
-# <- Positional arg of type int
+# <- Reuse module docstring
+#    in usage help text
+# <- Positional integer arg
 
 
 # <- Optional arg, boolean,
@@ -942,7 +949,7 @@ Run tests from command-line:
 ```bash
 $ python -m unittest myscript.py
 ......
-------------------------------------------------------
+-----------------------------------------------------
 Ran 6 tests in 0.000s
 
 OK
@@ -983,13 +990,13 @@ def test_calc():
 Run tests from command-line:
 ```bash
 $ pytest myscript.py
-================ test session starts =================
+================ test session starts ================
 [...]
 collected 1 item
 
-myscript.py .                                  [100%]
+myscript.py .                                 [100%]
 
-============== 1 passed in 0.01 seconds ==============
+============== 1 passed in 0.01 seconds =============
 ```
 
 Run tests from within the script:
