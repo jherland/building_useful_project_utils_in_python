@@ -113,14 +113,14 @@
             rgba(255, 255, 255, 0.75),
             rgba(255, 255, 255, 0.25)
           ),
-          url(light_bg.jpg),
+          url(images/light_bg.jpg),
           #ffffff;
         background-size: cover;
       }
 
       .inverse-empty {
         background:
-          url(space_bg.jpg),
+          url(images/space_bg.jpg),
           #272822;
         background-size: cover;
         color: #777872;
@@ -131,7 +131,7 @@
             rgba(0, 0, 0, 0.5),
             rgba(0, 0, 0, 0.5)
           ),
-          url(space_bg.jpg),
+          url(images/space_bg.jpg),
           #272822;
         background-size: cover;
         color: #777872;
@@ -167,7 +167,7 @@ Johan Herland<br />
 &lt;<a href="mailto:jherland@cisco.com">jherland@cisco.com</a>&gt;<br />
 &lt;<a href="mailto:johan@herland.net">johan@herland.net</a>&gt;
 
-<img src="space_bg.jpg" width="10%" />
+<img src="images/space_bg.jpg" width="10%" />
 
 ???
 
@@ -1045,7 +1045,7 @@ class: center, middle, inverse
 
 ## Common developer workflow
 
-<img src="build_cycle1.png" width="95%"/>
+<img src="images/build_cycle1.png" width="95%"/>
 
 ???
 
@@ -1059,10 +1059,10 @@ Build/test cycle:
 
 ## <tt>binst</tt> shell script
 
-<img src="binst.sh.1.png" height="500" />
-<img src="binst.sh.2.png" height="500" />
-<img src="binst.sh.3.png" height="500" />
-<img src="binst.sh.4.png" height="500" />
+<img src="images/binst.sh.1.png" height="500" />
+<img src="images/binst.sh.2.png" height="500" />
+<img src="images/binst.sh.3.png" height="500" />
+<img src="images/binst.sh.4.png" height="500" />
 
 ---
 
@@ -1110,14 +1110,14 @@ Flip back and forth to binst.sh
 
 Simple systems have the camera built-in to the *codec* (device running the CE S/W)
 
-<img src="hopen.jpg" width="30%" />
+<img src="images/hopen.jpg" width="30%" />
 
 --
 
 Bigger systems have codec running separately from one or more cameras
 
-<img src="room_kit_plus_scenario.jpg" width="40%" />
-<img src="mx800d.jpg" width="30%" style="margin-left:5%" />
+<img src="images/room_kit_plus_scenario.jpg" width="40%" />
+<img src="images/mx800d.jpg" width="30%" style="margin-left:5%" />
 
 ---
 
@@ -1130,7 +1130,8 @@ Bigger systems have codec running separately from one or more cameras
 - Introduce .loads files
     - Tells system where to find <code>.pkg</code>s
     - System pulls the <code>.pkg</code>s needed to upgrade all devices
-    - Same mechanism as upgrades in the field
+    - Same mechanism as
+ upgrades in the field
 - Changes to dev workflow:
     - one or more build commands
     - single <tt>binst</tt> to update codec + peripherals:
@@ -1139,7 +1140,7 @@ Bigger systems have codec running separately from one or more cameras
 
 ## <tt>binst</tt>ing with <code>.loads</code> files
 
-<img src="build_cycle2.png" width="95%"/>
+<img src="images/build_cycle2.png" width="95%"/>
 
 ???
 
