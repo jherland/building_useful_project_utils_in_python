@@ -4,9 +4,69 @@
     <title>Building useful project utils in Python</title>
     <meta charset="utf-8">
     <style>
-      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
-      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
-      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+      @font-face {
+        font-family: 'Yanone Kaffeesatz';
+        font-style: normal;
+        font-weight: 400;
+        src:
+          local('Yanone Kaffeesatz Regular'),
+          local('YanoneKaffeesatz-Regular'),
+          url('YanoneKaffeesatz-Regular.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Droid Serif';
+        font-style: italic;
+        font-weight: 400;
+        src:
+          local('Droid Serif Italic'),
+          local('DroidSerif-Italic'),
+          url('DroidSerif-Italic.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Droid Serif';
+        font-style: normal;
+        font-weight: 400;
+        src:
+          local('Droid Serif Regular'),
+          local('DroidSerif-Regular'),
+          url('DroidSerif-Regular.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Droid Serif';
+        font-style: normal;
+        font-weight: 700;
+        src:
+          local('Droid Serif Bold'),
+          local('DroidSerif-Bold'),
+          url('DroidSerif-Bold.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Ubuntu Mono';
+        font-style: italic;
+        font-weight: 400;
+        src:
+          local('Ubuntu Mono Italic'),
+          local('UbuntuMono-Italic'),
+          url('UbuntuMono-Italic.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Ubuntu Mono';
+        font-style: normal;
+        font-weight: 400;
+        src:
+          local('Ubuntu Mono'),
+          local('UbuntuMono-Regular'),
+          url('UbuntuMono-Regular.ttf') format('truetype');
+      }
+      @font-face {
+        font-family: 'Ubuntu Mono';
+        font-style: normal;
+        font-weight: 700;
+        src:
+          local('Ubuntu Mono Bold'),
+          local('UbuntuMono-Bold'),
+          url('UbuntuMono-Bold.ttf') format('truetype');
+      }
 
       body { font-family: 'Droid Serif'; }
       h1, h2, h3 {
@@ -1477,7 +1537,7 @@ Johan Herland<br />
 <small>Slideshow created with [remark](https://gnab.github.com/remark).</small>
 
     </textarea>
-    <script src="https://gnab.github.io/remark/downloads/remark-latest.min.js">
+    <script src="remark-latest.min.js">
     </script>
     <script>
       var slideshow = remark.create({
